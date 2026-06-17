@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/context/LanguageContext";
 import { translations } from "@/lib/translations";
-import AnimatedHeroTitle from "./AnimatedHeroTitle";
+import { MagneticText } from "./ui/morphing-cursor";
 import AnimatedCTAButton from "./AnimatedCTAButton";
-import VideoBackground from "./VideoBackground";
+import NeuralBackground from "./ui/flow-field-background";
 
 const HeroSection = () => {
   const { language } = useLanguage();
@@ -12,12 +12,17 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-      {/* Video Background */}
-      <VideoBackground
-        videoSource="/videos/hero-bg.mp4"
-        overlay={true}
-        overlayOpacity={0.45}
-      />
+      {/* Neural Background */}
+      <div className="absolute inset-0 z-0">
+        <NeuralBackground 
+          color="#00e5ff" 
+          trailOpacity={0.1} 
+          particleCount={800} 
+          speed={0.6}
+        />
+        {/* Subtle overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+      </div>
 
       {/* Subtle grid overlay */}
       <div
@@ -38,10 +43,18 @@ const HeroSection = () => {
           {t.agency}
         </motion.p>
 
-        <div className="mb-6">
-          <AnimatedHeroTitle 
-            mainText={t.title}
-            dynamicText={t.titleDynamic}
+        <div className="mb-10 flex flex-col items-center gap-6">
+          <MagneticText 
+            text="MEMBANGUN PENGALAMAN" 
+            hoverText="CREATING SEAMLESS" 
+            className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tight leading-none" 
+            circleSize={300}
+          />
+          <MagneticText 
+            text="DIGITAL UNTUK ANDA" 
+            hoverText="EXPERIENCES FOR YOU" 
+            className="text-3xl md:text-5xl lg:text-6xl font-extrabold opacity-90 tracking-tight" 
+            circleSize={250}
           />
         </div>
 

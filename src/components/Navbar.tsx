@@ -23,6 +23,8 @@ interface NavbarProps {
 
 const Navbar = ({ cartItems = [], showCart = false, onCartToggle, brandTextColor = "text-white" }: NavbarProps) => {
   const [scrolled, setScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
@@ -32,10 +34,35 @@ const Navbar = ({ cartItems = [], showCart = false, onCartToggle, brandTextColor
   const t = translations[language].navbar;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    const controlNavbar = () => {
+      const currentScrollY = window.scrollY;
+
+      // Scrolled state for styling
+      setScrolled(currentScrollY > 20);
+
+      // Visibility state for hiding on scroll down
+      // If mobile menu is open, keep navbar visible
+      if (mobileMenuOpen) {
+        setIsVisible(true);
+        return;
+      }
+
+      if (currentScrollY < 10) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 80) {
+        // Scrolling down
+        setIsVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setIsVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", controlNavbar);
+    return () => window.removeEventListener("scroll", controlNavbar);
+  }, [lastScrollY, mobileMenuOpen]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -61,49 +88,37 @@ const Navbar = ({ cartItems = [], showCart = false, onCartToggle, brandTextColor
   return (
     <>
       <motion.nav
-        initial={{ y: -80 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className={`fixed top-4 left-4 right-4 z-50 transition-all duration-500 rounded-[28px] ${
-          scrolled
-            ? "border border-transparent bg-white/5 py-3 shadow-lg shadow-black/30 backdrop-blur-xl"
-            : "border border-transparent bg-transparent py-5 backdrop-blur-sm"
-        }`}
-        style={scrolled ? {
-          background: 'rgba(255, 255, 255, 0.05)',
-          boxShadow: `
-            0 0 30px rgba(59, 130, 246, 0.25),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1),
-            inset 0 0 0 1px rgba(220, 38, 38, 0.3),
-            inset 0 0 0 1.5px rgba(59, 130, 246, 0.2)
-          `.replace(/\n/g, ''),
-          borderRadius: '28px',
-          border: 'none',
-        } : {}}
+        initial={{ y: -100 }}
+        animate={{ y: isVisible ? 0 : -100 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed top-4 inset-x-4 z-50 flex justify-center pointer-events-none"
       >
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between gap-4">
+        <div className={`pointer-events-auto transition-all duration-500 rounded-full flex items-center justify-between w-full max-w-7xl mx-auto px-4 md:px-6 gap-2 sm:gap-4 ${scrolled || mobileMenuOpen
+            ? "bg-background/60 border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] backdrop-blur-xl py-2"
+            : "bg-transparent py-4"
+          }`}>
           {/* Logo */}
-          <Link 
-            to="/" 
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity z-10 flex-shrink-0"
+          <Link
+            to="/"
+            className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity z-10 flex-shrink-0"
             title="Firanta Store"
           >
-            <img 
+            <img
               // src="./public/videos/images/logobrand.png" 
               src="https://i.ibb.co.com/jv0RgTpF/logobrandv1.png"
-              alt="Firanta Logo" 
-              className="h-16 w-auto object-contain"
+              alt="Firanta Logo"
+              className={`w-auto object-contain transition-all duration-500 ${scrolled ? "h-8 sm:h-10" : "h-12 sm:h-16"}`}
               style={{ mixBlendMode: 'screen' }}
             />
             <div className="hidden sm:block">
-              <BrandLogo 
-                text="FIRANTA STORE" 
+              <BrandLogo
+                text="FIRANTA STORE"
                 animationType="letterSpinUp"
-                fontSize={20}
+                fontSize={scrolled ? 16 : 20}
                 color={brandTextColor || '#1F2937'}
                 duration={1200}
                 loop={true}
-                responsiveSizes={{ mobile: 14, tablet: 18, desktop: 20 }}
+                responsiveSizes={{ mobile: 14, tablet: 18, desktop: scrolled ? 16 : 20 }}
               />
             </div>
           </Link>
@@ -118,19 +133,17 @@ const Navbar = ({ cartItems = [], showCart = false, onCartToggle, brandTextColor
                   to={link.href}
                   className="relative group text-sm font-medium"
                 >
-                  <span className={`transition-colors duration-300 ${
-                    isActive(link.href)
+                  <span className={`transition-colors duration-300 ${isActive(link.href)
                       ? "text-primary"
                       : "text-muted-foreground group-hover:text-foreground"
-                  }`}>
+                    }`}>
                     {t[link.key as keyof typeof t]}
                   </span>
                   {/* Animated underline */}
                   <motion.div
                     layoutId={isActive(link.href) ? "active-underline" : undefined}
-                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary transition-all duration-300 origin-left ${
-                      isActive(link.href) ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0 group-hover:opacity-100 group-hover:scale-x-100"
-                    }`}
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary transition-all duration-300 origin-left ${isActive(link.href) ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0 group-hover:opacity-100 group-hover:scale-x-100"
+                      }`}
                   />
                 </Link>
               ))}
@@ -280,11 +293,10 @@ const Navbar = ({ cartItems = [], showCart = false, onCartToggle, brandTextColor
                   <Link
                     key={link.href}
                     to={link.href}
-                    className={`block w-full px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      isActive(link.href)
+                    className={`block w-full px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300 ${isActive(link.href)
                         ? "text-primary bg-primary/20 border border-primary/30"
                         : "text-muted-foreground hover:text-foreground hover:bg-primary/10"
-                    }`}
+                      }`}
                   >
                     {t[link.key as keyof typeof t]}
                   </Link>

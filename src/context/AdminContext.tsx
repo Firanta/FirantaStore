@@ -47,8 +47,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
           // Get token claims with refresh
           const idTokenResult = await firebaseUser.getIdTokenResult(true);
           
-          // Check if admin via custom claims - PRIMARY METHOD
-          const isAdminFromClaims = idTokenResult.claims.isAdmin === true;
+          // Check if admin via custom claims or specific UID - PRIMARY METHOD
+          const isAdminUid = firebaseUser.uid === "tVTJBnI0mrSp0hMK4KNrooHbdLE3";
+          const isAdminFromClaims = idTokenResult.claims.isAdmin === true || isAdminUid;
           
           if (isDev) console.log("[AdminContext] Custom claims check:", { 
             isAdmin: isAdminFromClaims, 

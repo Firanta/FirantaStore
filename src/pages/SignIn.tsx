@@ -1,17 +1,35 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useUser } from "@/context/UserContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useToast } from "@/components/ui/use-toast";
 import { translations } from "@/lib/translations";
+import { SignInPage, Testimonial } from "@/components/ui/sign-in";
+
+const sampleTestimonials: Testimonial[] = [
+  {
+    avatarSrc: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&q=80",
+    name: "Sarah Chen",
+    handle: "@sarahdigital",
+    text: "Amazing platform! The user experience is seamless and the features are exactly what I needed."
+  },
+  {
+    avatarSrc: "https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&q=80",
+    name: "Marcus Johnson",
+    handle: "@marcustech",
+    text: "This service has transformed how I work. Clean design, powerful features, and excellent support."
+  },
+  {
+    avatarSrc: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&q=80",
+    name: "David Martinez",
+    handle: "@davidcreates",
+    text: "I've tried many platforms, but this one stands out. Intuitive, reliable, and genuinely helpful for productivity."
+  },
+];
 
 const SignIn = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useUser();
@@ -19,8 +37,23 @@ const SignIn = () => {
   const { language } = useLanguage();
   const t = translations[language].auth.signin;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+    
+    const email = data.email as string;
+    const password = data.password as string;
+
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -35,7 +68,6 @@ const SignIn = () => {
         duration: 3000,
       });
       
-      // Give user a moment to see the success message
       setTimeout(() => {
         navigate("/dashboard");
       }, 1000);
@@ -54,137 +86,39 @@ const SignIn = () => {
     }
   };
 
+  const handleGoogleSignIn = () => {
+    toast({
+      title: "Google Login",
+      description: "Google login integration is coming soon.",
+    });
+  };
+  
+  const handleResetPassword = () => {
+    toast({
+      title: "Reset Password",
+      description: "Password reset functionality will be available soon.",
+    });
+  };
+
+  const handleCreateAccount = () => {
+    navigate("/signup");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="pt-32 pb-20 px-6">
-        <div className="max-w-md mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center mb-12"
-          >
-            <h1 className="text-4xl font-bold text-gradient mb-2">{t.title}</h1>
-            <p className="text-muted-foreground">
-              {t.subtitle}
-            </p>
-          </motion.div>
-
-          <motion.form
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            onSubmit={handleSubmit}
-            className="glass rounded-2xl p-8 space-y-6 glow-border"
-          >
-            {/* Email Input */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                {t.email}
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t.emailPlaceholder}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password Input */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                {t.password}
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t.passwordPlaceholder}
-                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Remember & Forgot */}
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-border bg-background border cursor-pointer"
-                />
-                <span className="text-muted-foreground cursor-pointer">
-                  {t.rememberMe}
-                </span>
-              </label>
-              <a href="#" className="text-primary hover:underline">
-                {t.forgotPassword}
-              </a>
-            </div>
-
-            {/* Submit Button */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {isLoading ? t.loading : t.loginButton}
-              {!isLoading && <ArrowRight className="w-4 h-4" />}
-            </motion.button>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-background text-muted-foreground">
-                  {t.divider}
-                </span>
-              </div>
-            </div>
-
-            {/* Social Login */}
-            <button
-              type="button"
-              className="w-full py-2.5 rounded-lg border border-border bg-background hover:bg-primary/5 transition-colors duration-300 flex items-center justify-center gap-2"
-            >
-              <svg
-                className="w-5 h-5"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M23.745 12.27c0-.79-.3-1.54-.84-2.15v-2.26h-2.18c.37.83.58 1.75.58 2.72 0 3.06-2.29 5.59-5.31 5.59-1.23 0-2.38-.38-3.35-.99v3.5c1.32.49 2.74.77 4.22.77 4.57 0 8.38-3.58 8.38-8.18z" />
-              </svg>
-              {t.googleLogin}
-            </button>
-          </motion.form>
-
-          {/* Sign Up Link */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-center mt-8 text-muted-foreground"
-          >
-            {t.noAccount}{" "}
-            <Link to="/signup" className="text-primary hover:underline font-semibold">
-              {t.signUp}
-            </Link>
-          </motion.p>
-        </div>
-      </div>
+      <SignInPage
+        title={t.title}
+        description={t.subtitle}
+        heroImageSrc="https://images.unsplash.com/photo-1642615835477-d303d7dc9ee9?w=2160&q=80"
+        testimonials={sampleTestimonials}
+        onSignIn={handleSignIn}
+        onGoogleSignIn={handleGoogleSignIn}
+        onResetPassword={handleResetPassword}
+        onCreateAccount={handleCreateAccount}
+        isLoading={isLoading}
+      />
 
       <Footer />
     </div>

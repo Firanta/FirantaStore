@@ -82,11 +82,10 @@ const AnimatedCTAButton = ({
       {/* Animated glow effect */}
       <div
         ref={glowRef}
-        className={`absolute inset-0 rounded-full ${
-          variant === "primary"
+        className={`absolute inset-0 rounded-full ${variant === "primary"
             ? "bg-gradient-to-r from-primary to-transparent"
             : "bg-gradient-to-r from-primary/50 to-transparent"
-        } pointer-events-none`}
+          } pointer-events-none`}
       ></div>
 
       {/* Content */}

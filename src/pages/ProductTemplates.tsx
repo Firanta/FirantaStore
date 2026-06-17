@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ShoppingCart, X, Download, Eye, Check } from "lucide-react";
+import { ArrowRight, ShoppingCart, X, Download, Eye, Check, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ParticleCanvas } from "@/components/ui/particle-canvas-1";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { useUser } from "@/context/UserContext";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-const templates = [
+const staticTemplates = [
   // Wedding Category
   {
     id: 1,
@@ -310,13 +315,103 @@ const ProductTemplates = () => {
   const [cartItems, setCartItems] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeTemplates, setActiveTemplates] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, isAuthenticated, addOrder } = useUser();
+  const { language } = useLanguage();
+  const t_page = translations[language].products.templates;
+
+  useEffect(() => {
+    const fetchFirestoreTemplates = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "templates"));
+        if (!querySnapshot.empty) {
+          const loadedTemplates = querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            const id = doc.id;
+            
+            // Map category to match UI category filters (Semua, Wedding, Portfolio, Birthday Gift, Anniversary Gift)
+            let category = "Wedding";
+            const rawCat = (data.category || "").toLowerCase();
+            if (rawCat === "wedding") category = "Wedding";
+            else if (rawCat === "portfolio") category = "Portfolio";
+            else if (rawCat === "birthday") category = "Birthday Gift";
+            else if (rawCat === "anniversary") category = "Anniversary Gift";
+            else if (rawCat === "event") category = "Wedding"; // fallback
+            
+            let basePrice = 35000;
+            if (typeof data.price === "number") {
+              basePrice = data.price;
+            } else if (data.price && typeof data.price === "object") {
+              basePrice = Number(data.price.softfile) || Number(data.price.url) || 35000;
+            }
+            
+            const options = [
+              {
+                type: "soft-file",
+                price: basePrice,
+                label: "Soft File (Unduh)",
+                features: [
+                  "✓ File HTML, CSS & JavaScript",
+                  "✓ Dapat disesuaikan dengan editor teks",
+                  "✓ Fleksibel untuk dimodif",
+                  "✓ Deliverable dalam format ZIP",
+                  "✓ Dokumentasi lengkap"
+                ],
+                highlight: "Pilih jika ingin kontrol penuh"
+              },
+              {
+                type: "url",
+                price: basePrice + 40000,
+                label: "URL Gratis (Hosting Web)",
+                features: [
+                  "✓ Domain gratis selama 1 tahun",
+                  "✓ Web hosting 24/7 online",
+                  "✓ Tidak perlu technical setup",
+                  "✓ Bisa diakses langsung via link",
+                  "✓ Support teknis sudah termasuk"
+                ],
+                highlight: "Mudah, praktis, siap pakai!"
+              }
+            ];
+
+            let imageGradient = "from-pink-400/30 to-rose-400/30";
+            if (category === "Portfolio") imageGradient = "from-purple-400/30 to-indigo-400/30";
+            else if (category === "Birthday Gift") imageGradient = "from-yellow-400/30 to-orange-400/30";
+            else if (category === "Anniversary Gift") imageGradient = "from-red-500/30 to-pink-500/30";
+
+            return {
+              id,
+              name: data.name || data.title || "Unnamed Template",
+              description: data.description || "No description provided.",
+              category,
+              image: imageGradient,
+              preview: data.imageUrl || (data.images && data.images[0]) || "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&h=600&fit=crop",
+              demoUrl: data.demoUrl || "",
+              options
+            };
+          });
+          
+          setActiveTemplates(loadedTemplates);
+        } else {
+          setActiveTemplates(staticTemplates);
+        }
+      } catch (error) {
+        console.error("Error fetching templates from Firestore:", error);
+        setActiveTemplates(staticTemplates);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFirestoreTemplates();
+  }, []);
 
   const filteredTemplates = selectedCategory === "Semua" 
-    ? templates 
-    : templates.filter(t => t.category === selectedCategory);
+    ? activeTemplates 
+    : activeTemplates.filter(t => t.category === selectedCategory);
 
   const handleAddToCart = (template, option) => {
     const item = {
@@ -397,26 +492,32 @@ const ProductTemplates = () => {
       />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-20 relative mesh-gradient">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center"
-          >
-            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground mb-4">
-              Premium Templates Collection
-            </p>
-            <h1 className="text-5xl md:text-6xl font-bold text-gradient mb-6">
-              Pilih Template Sempurna Untuk Momen Istimewa
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              Kami menyediakan template profesional untuk Wedding, Portfolio, Birthday, dan Anniversary. 
-              Pilih antara soft file yang fleksibel atau URL siap pakai yang praktis.
-            </p>
-          </motion.div>
+      <section className="min-h-[70vh] flex items-center justify-center relative overflow-hidden bg-background pt-20">
+        <ParticleCanvas />
+        
+        <div className="max-w-7xl mx-auto px-6 relative z-10 text-center">
+          <div className="max-w-3xl mx-auto">
+            <motion.h1 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 tracking-tight text-gradient leading-tight"
+            >
+              {t_page.title}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto"
+            >
+              {t_page.subtitle}
+            </motion.p>
+          </div>
         </div>
+        
+        {/* Bottom fade for smooth transition */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-10" />
       </section>
 
       {/* Category Filter Bar */}
@@ -584,6 +685,19 @@ const ProductTemplates = () => {
                   <p className="text-muted-foreground mb-6">
                     {selectedProduct.description}
                   </p>
+                  {selectedProduct.demoUrl && (
+                    <div className="mb-6">
+                      <a
+                        href={selectedProduct.demoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/40 text-sm font-semibold transition-all"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Lihat Live Demo ↗
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 {/* Pricing Options */}
@@ -725,14 +839,25 @@ const ProductTemplates = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="space-y-2">
+                    <div className="flex gap-2">
                       <button
                         onClick={() => setSelectedProduct(template)}
-                        className="w-full py-2 px-4 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-medium flex items-center justify-center gap-2 text-sm"
+                        className="flex-1 py-2 px-3 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-medium flex items-center justify-center gap-1.5 text-xs"
                       >
                         <Eye className="w-4 h-4" />
-                        Lihat Detail & Preview
+                        Detail & Beli
                       </button>
+                      {template.demoUrl && (
+                        <a
+                          href={template.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-2 px-3 rounded-lg bg-primary text-primary-foreground hover:opacity-95 transition-all font-medium flex items-center justify-center gap-1.5 text-xs"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Live Demo ↗
+                        </a>
+                      )}
                     </div>
                   </div>
                 </motion.div>

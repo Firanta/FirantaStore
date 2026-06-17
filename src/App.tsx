@@ -7,6 +7,7 @@ import { UserProvider } from "@/context/UserContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AdminProvider } from "@/context/AdminContext";
 import { ProtectedAdminRoute } from "@/components/ProtectedAdminRoute";
+import ScrollToTop from "@/components/ScrollToTop";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ProductTemplates from "./pages/ProductTemplates.tsx";
@@ -22,6 +23,7 @@ import AdminOrders from "./pages/AdminOrders.tsx";
 import AdminTemplates from "./pages/AdminTemplates.tsx";
 import AdminAnalytics from "./pages/AdminAnalytics.tsx";
 import AdminSettings from "./pages/AdminSettings.tsx";
+import AdminSamples from "./pages/AdminSamples.tsx";
 import WebCustomization from "./pages/WebCustomization.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <ScrollToTop />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/templates" element={<ProductTemplates />} />
@@ -69,6 +72,14 @@ const App = () => (
                   element={
                     <ProtectedAdminRoute>
                       <AdminTemplates />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/samples"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminSamples />
                     </ProtectedAdminRoute>
                   }
                 />

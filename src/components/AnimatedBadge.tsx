@@ -14,8 +14,8 @@ const AnimatedBadge = ({ label, variant = "primary", index = 0 }: AnimatedBadgeP
     if (!badgeRef.current) return;
 
     // Initial state
-    animeSet(badgeRef.current, { 
-      opacity: 0, 
+    animeSet(badgeRef.current, {
+      opacity: 0,
       scale: 0.8,
       rotate: -15,
     });

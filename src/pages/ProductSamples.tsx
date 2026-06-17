@@ -1,113 +1,48 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ExternalLink, Code2, Eye } from "lucide-react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
-const samples = [
-  {
-    id: 1,
-    title: "Sarapan Pagi 3 Saudara",
-    description: "Website restoran dengan menu showcase, order online, dan reservasi meja yang interaktif.",
-    category: "Restaurant",
-    tech: ["React", "Firebase", "Tailwind CSS"],
-    color: "from-orange-500/20 to-red-500/20",
-    liveUrl: "https://sarapanpagi3saudara.web.app",
-    codeUrl: "#",
-  },
-  {
-    id: 2,
-    title: "Fleuriffy Florist",
-    description: "Platform toko bunga dengan katalog produk lengkap, checkout, dan delivery tracking.",
-    category: "E-Commerce",
-    tech: ["React", "Firebase", "Stripe"],
-    color: "from-pink-500/20 to-rose-500/20",
-    liveUrl: "https://fleuriffyfloristt.web.app",
-    codeUrl: "#",
-  },
-  {
-    id: 3,
-    title: "Birthday 22th Celebration",
-    description: "Website event perayaan dengan gallery foto, guest book, dan timeline interaktif.",
-    category: "Event",
-    tech: ["React", "Firebase", "Tailwind CSS"],
-    color: "from-purple-500/20 to-pink-500/20",
-    liveUrl: "https://brithday22th.web.app",
-    codeUrl: "#",
-  },
-  {
-    id: 4,
-    title: "Neon Studio Website",
-    description: "Agensi desain modern dengan animated hero section dan smooth scroll.",
-    category: "Design Agency",
-    tech: ["React", "TypeScript", "Tailwind CSS"],
-    color: "from-blue-500/20 to-purple-500/20",
-    liveUrl: "#",
-    codeUrl: "#",
-  },
-  {
-    id: 5,
-    title: "Aether Labs Dashboard",
-    description: "Dashboard analytics dengan data visualization dan real-time updates.",
-    category: "SaaS",
-    tech: ["React", "TypeScript", "Recharts"],
-    color: "from-emerald-500/20 to-cyan-500/20",
-    liveUrl: "#",
-    codeUrl: "#",
-  },
-  {
-    id: 6,
-    title: "Pulse Finance App",
-    description: "Aplikasi fintech dengan fitur transfer, investment, dan portfolio tracking.",
-    category: "Fintech",
-    tech: ["React Native", "Firebase", "Node.js"],
-    color: "from-orange-500/20 to-amber-500/20",
-    liveUrl: "#",
-    codeUrl: "#",
-  },
-  {
-    id: 7,
-    title: "Void Interactive Platform",
-    description: "Platform kolaborasi real-time dengan live editing dan instant notifications.",
-    category: "Productivity",
-    tech: ["Next.js", "WebSocket", "PostgreSQL"],
-    color: "from-violet-500/20 to-indigo-500/20",
-    liveUrl: "#",
-    codeUrl: "#",
-  },
-  {
-    id: 8,
-    title: "Stratos Cloud Storage",
-    description: "Cloud storage solution dengan drag-drop upload dan file management.",
-    category: "Cloud Services",
-    tech: ["Next.js", "AWS S3", "Typescript"],
-    color: "from-cyan-500/20 to-blue-500/20",
-    liveUrl: "#",
-    codeUrl: "#",
-  },
-  {
-    id: 9,
-    title: "Obsidian E-Commerce",
-    description: "Platform e-commerce lengkap dengan product showcase dan checkout flow.",
-    category: "E-Commerce",
-    tech: ["Next.js", "Stripe", "MongoDB"],
-    color: "from-rose-500/20 to-orange-500/20",
-    liveUrl: "#",
-    codeUrl: "#",
-  },
-  {
-    id: 10,
-    title: "Nebula Social Network",
-    description: "Aplikasi social media dengan feed, messaging, dan user profiles.",
-    category: "Social",
-    tech: ["React", "Firebase", "Realtime DB"],
-    color: "from-pink-500/20 to-red-500/20",
-    liveUrl: "#",
-    codeUrl: "#",
-  },
-];
+interface Sample {
+  id?: string;
+  title: string;
+  description: string;
+  category: string;
+  tech: string[];
+  color: string;
+  liveUrl: string;
+  codeUrl: string;
+}
 
 const ProductSamples = () => {
+  const [samples, setSamples] = useState<Sample[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSamples = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "samples"));
+        const samplesList = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Sample[];
+        
+        // You can sort or randomize here if needed
+        setSamples(samplesList);
+      } catch (error) {
+        console.error("Error fetching samples:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSamples();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -169,7 +104,16 @@ const ProductSamples = () => {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {samples.map((sample, i) => (
+            {isLoading ? (
+              <div className="col-span-full flex justify-center py-20">
+                <p className="text-muted-foreground">Memuat portofolio...</p>
+              </div>
+            ) : samples.length === 0 ? (
+              <div className="col-span-full flex justify-center py-20">
+                <p className="text-muted-foreground">Belum ada portofolio yang ditambahkan.</p>
+              </div>
+            ) : (
+              samples.map((sample, i) => (
               <motion.div
                 key={sample.id}
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -246,7 +190,7 @@ const ProductSamples = () => {
                   </a>
                 </div>
               </motion.div>
-            ))}
+            )))}
           </div>
         </div>
       </section>

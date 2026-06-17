@@ -116,4 +116,55 @@
       radial-gradient(ellipse at 80% 20%, hsl(260 60% 55% / 0.06) 0%, transparent 50%),
       radial-gradient(ellipse at 60% 80%, hsl(220 70% 55% / 0.04) 0%, transparent 50%);
   }
+
+  @keyframes fadeSlideIn {
+    0% {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(0px);
+      transform: translateY(0px);
+    }
+  }
+
+  @keyframes slideRightIn {
+    0% {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translateX(40px);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(0px);
+      transform: translateX(0px);
+    }
+  }
+
+  @keyframes testimonialIn {
+    0% {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translateY(20px) scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(0px);
+      transform: translateY(0px) scale(1);
+    }
+  }
+
+  .animate-fadeSlideIn {
+    animation: fadeSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-slideRightIn {
+    animation: slideRightIn 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-testimonialIn {
+    animation: testimonialIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }

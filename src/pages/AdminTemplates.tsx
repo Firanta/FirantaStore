@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Plus, Eye, Edit, Trash2 } from "lucide-react";
-import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, updateDoc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface Template {
@@ -21,6 +21,7 @@ interface Template {
   price: number;
   description?: string;
   imageUrl?: string;
+  demoUrl?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -33,31 +34,34 @@ export default function AdminTemplates() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editFormData, setEditFormData] = useState<Partial<Template>>({});
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState<Partial<Template>>({});
 
   const categories = ["wedding", "portfolio", "birthday", "anniversary", "event"];
 
   useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "templates"));
-        const templatesList = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Template[];
-
-        setTemplates(templatesList);
-        setFilteredTemplates(templatesList);
-      } catch (error) {
-        console.error("Error fetching templates:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchTemplates();
   }, []);
+
+  const fetchTemplates = async () => {
+    setIsLoading(true);
+    try {
+      const snapshot = await getDocs(collection(db, "templates"));
+      const templatesList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Template[];
+
+      setTemplates(templatesList);
+      setFilteredTemplates(templatesList);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     let filtered = [...templates];
@@ -79,30 +83,91 @@ export default function AdminTemplates() {
     setFilteredTemplates(filtered);
   }, [searchTerm, categoryFilter, templates]);
 
-  const handleUpdateTemplate = async () => {
-    if (!selectedTemplate) return;
+  /* ─── Open form modal ─── */
+  const openAddModal = () => {
+    setSelectedTemplate(null);
+    setIsEditing(false);
+    setFormData({
+      name: "",
+      price: 0,
+      category: "",
+      description: "",
+      imageUrl: "",
+      demoUrl: "",
+    });
+    setShowFormModal(true);
+  };
+
+  const openEditModal = (template: Template) => {
+    setSelectedTemplate(template);
+    setIsEditing(true);
+    setFormData({
+      name: template.name,
+      price: template.price,
+      category: template.category,
+      description: template.description || "",
+      imageUrl: template.imageUrl || "",
+      demoUrl: template.demoUrl || "",
+    });
+    setShowDetailsModal(false);
+    setShowFormModal(true);
+  };
+
+  /* ─── Save (add or update) ─── */
+  const handleSave = async () => {
+    // Validation
+    if (!formData.name?.trim()) {
+      alert("Nama template harus diisi");
+      return;
+    }
+    if (!formData.category) {
+      alert("Kategori harus dipilih");
+      return;
+    }
+    if (!formData.price || formData.price <= 0) {
+      alert("Harga harus lebih dari 0");
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
-      const templateRef = doc(db, "templates", selectedTemplate.id);
-      await updateDoc(templateRef, {
-        ...editFormData,
-        updatedAt: new Date(),
-      });
+      if (isEditing && selectedTemplate) {
+        // Update existing
+        const templateRef = doc(db, "templates", selectedTemplate.id);
+        await updateDoc(templateRef, {
+          name: formData.name,
+          price: Number(formData.price) || 0,
+          category: formData.category,
+          description: formData.description || "",
+          imageUrl: formData.imageUrl || "",
+          demoUrl: formData.demoUrl || "",
+          updatedAt: new Date(),
+        });
+        alert("Template berhasil diupdate");
+      } else {
+        // Add new
+        await addDoc(collection(db, "templates"), {
+          name: formData.name,
+          price: Number(formData.price) || 0,
+          category: formData.category,
+          description: formData.description || "",
+          imageUrl: formData.imageUrl || "",
+          demoUrl: formData.demoUrl || "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        alert("Template berhasil ditambahkan");
+      }
 
-      setTemplates(
-        templates.map((template) =>
-          template.id === selectedTemplate.id
-            ? { ...template, ...editFormData }
-            : template
-        )
-      );
-
-      alert("Template berhasil diupdate");
-      setShowEditModal(false);
+      setShowFormModal(false);
       setShowDetailsModal(false);
+      fetchTemplates(); // Re-fetch to get updated data
     } catch (error) {
-      console.error("Error updating template:", error);
-      alert("Gagal mengupdate template");
+      console.error("Error saving template:", error);
+      alert(isEditing ? "Gagal mengupdate template" : "Gagal menambahkan template");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -119,18 +184,6 @@ export default function AdminTemplates() {
       console.error("Error deleting template:", error);
       alert("Gagal menghapus template");
     }
-  };
-
-  const openEditModal = (template: Template) => {
-    setSelectedTemplate(template);
-    setEditFormData({
-      name: template.name,
-      price: template.price,
-      category: template.category,
-      description: template.description,
-    });
-    setShowDetailsModal(false);
-    setShowEditModal(true);
   };
 
   if (isLoading) {
@@ -152,7 +205,10 @@ export default function AdminTemplates() {
             <h1 className="text-3xl font-bold text-gray-900">Manajemen Template</h1>
             <p className="text-gray-600 mt-1">Kelola template dan desain yang tersedia</p>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700 gap-2">
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 gap-2"
+            onClick={openAddModal}
+          >
             <Plus size={18} />
             Template Baru
           </Button>
@@ -226,7 +282,7 @@ export default function AdminTemplates() {
 
                   <div className="flex items-baseline justify-between">
                     <p className="text-2xl font-bold text-gray-900">
-                      Rp {template.price.toLocaleString("id-ID")}
+                      Rp {(Number(template.price) || 0).toLocaleString("id-ID")}
                     </p>
                   </div>
 
@@ -307,13 +363,26 @@ export default function AdminTemplates() {
                   <div>
                     <p className="text-sm text-gray-600">Harga</p>
                     <p className="text-xl font-bold text-gray-900">
-                      Rp {selectedTemplate.price.toLocaleString("id-ID")}
+                      Rp {(Number(selectedTemplate.price) || 0).toLocaleString("id-ID")}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">ID Template</p>
                     <p className="font-mono text-xs text-gray-600 break-all">{selectedTemplate.id}</p>
                   </div>
+                  {selectedTemplate.demoUrl && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-gray-600">Live Preview (Demo)</p>
+                      <a
+                        href={selectedTemplate.demoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline break-all text-sm font-medium"
+                      >
+                        {selectedTemplate.demoUrl} ↗
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 {selectedTemplate.description && (
@@ -342,89 +411,130 @@ export default function AdminTemplates() {
           </div>
         )}
 
-        {/* Edit Modal */}
-        {showEditModal && (
+        {/* Add / Edit Form Modal */}
+        {showFormModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-2xl">
-              <CardHeader className="flex items-center justify-between">
-                <CardTitle>Edit Template</CardTitle>
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <CardHeader className="flex flex-row items-center justify-between sticky top-0 bg-white z-10 border-b pb-4">
+                <CardTitle>{isEditing ? "Edit Template" : "Tambah Template Baru"}</CardTitle>
                 <button
-                  onClick={() => setShowEditModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowFormModal(false)}
+                  className="text-gray-500 hover:bg-gray-100 p-1 rounded-md"
                 >
                   ✕
                 </button>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Nama Template</label>
+              <CardContent className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Nama Template *</label>
                   <Input
-                    value={editFormData.name || ""}
+                    value={formData.name || ""}
                     onChange={(e) =>
-                      setEditFormData({ ...editFormData, name: e.target.value })
+                      setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="Nama template"
+                    placeholder="Contoh: Elegant Wedding Theme"
                   />
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Harga (Rp)</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Harga (Rp) *</label>
+                    <Input
+                      type="number"
+                      value={formData.price || 0}
+                      onChange={(e) =>
+                        setFormData({ ...formData, price: parseInt(e.target.value) || 0 })
+                      }
+                      placeholder="150000"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">Kategori *</label>
+                    <Select
+                      value={formData.category || ""}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, category: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih kategori" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">URL Gambar</label>
                   <Input
-                    type="number"
-                    value={editFormData.price || 0}
+                    value={formData.imageUrl || ""}
                     onChange={(e) =>
-                      setEditFormData({ ...editFormData, price: parseInt(e.target.value) })
+                      setFormData({ ...formData, imageUrl: e.target.value })
                     }
-                    placeholder="Harga"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  {formData.imageUrl && (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
+                      <img
+                        src={formData.imageUrl}
+                        alt="Preview"
+                        className="w-full h-32 object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">URL Live Preview (Demo Link)</label>
+                  <Input
+                    value={formData.demoUrl || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, demoUrl: e.target.value })
+                    }
+                    placeholder="https://wedding-elegant.firanta.com"
                   />
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Kategori</label>
-                  <Select
-                    value={editFormData.category || ""}
-                    onValueChange={(value) =>
-                      setEditFormData({ ...editFormData, category: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Deskripsi</label>
                   <textarea
-                    value={editFormData.description || ""}
+                    value={formData.description || ""}
                     onChange={(e) =>
-                      setEditFormData({ ...editFormData, description: e.target.value })
+                      setFormData({ ...formData, description: e.target.value })
                     }
-                    placeholder="Deskripsi template"
-                    className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+                    placeholder="Deskripsikan template ini..."
+                    className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={4}
                   />
                 </div>
 
-                <div className="border-t pt-4 flex gap-2">
+                <div className="flex justify-end gap-3 pt-6 border-t mt-6">
                   <Button
                     variant="outline"
-                    onClick={() => setShowEditModal(false)}
+                    onClick={() => setShowFormModal(false)}
                   >
                     Batal
                   </Button>
                   <Button
                     className="bg-blue-600 hover:bg-blue-700"
-                    onClick={handleUpdateTemplate}
+                    onClick={handleSave}
+                    disabled={isSaving}
                   >
-                    Simpan Perubahan
+                    {isSaving
+                      ? "Menyimpan..."
+                      : isEditing
+                        ? "Simpan Perubahan"
+                        : "Tambah Template"}
                   </Button>
                 </div>
               </CardContent>

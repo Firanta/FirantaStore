@@ -8,7 +8,7 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return request.auth.token.isAdmin == true;
+      return request.auth.token.isAdmin == true || request.auth.uid == 'tVTJBnI0mrSp0hMK4KNrooHbdLE3';
     }
     
     function isOwner(uid) {
@@ -62,6 +62,12 @@ service cloud.firestore {
 
     // Categories - public read, admin write
     match /categories/{catId} {
+      allow read: if true; // Public
+      allow write: if isAdmin();
+    }
+
+    // Samples (Portofolio) - public read, admin write
+    match /samples/{sampleId} {
       allow read: if true; // Public
       allow write: if isAdmin();
     }
