@@ -89,12 +89,6 @@ vercel --prod
 ### 4. Configure Environment
 Edit `.env.local`:
 ```env
-VITE_MIDTRANS_CLIENT_KEY=SB-Mid-client-qL3iowxuzGaqwQwv
-VITE_MIDTRANS_SERVER_KEY=SB-Mid-server-D5CuUjIMFG2v5tpQ1YRKWNAL
-VITE_MIDTRANS_MERCHANT_ID=G933168618
-
-# Update with your Vercel backend URL
-VITE_BACKEND_URL=https://firantastoree-backend.vercel.app
 ```
 
 ### 5. Set Vercel Environment Variables
